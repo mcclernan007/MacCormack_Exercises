@@ -1,0 +1,4 @@
+8/30:
+Read preface for course layout. 
+
+Started reading Ch1. N-S and Euler Eqns+constitutive. Next time, potential eqn, transonic small disturbance, laplace, model eqns, and maybe first exercise (6.1)

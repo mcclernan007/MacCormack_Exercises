@@ -1,0 +1,7 @@
+9/1/23: started ch2, read thru integral forms. Next discontinuities
+
+9/2/23:
+-read discontinuities thru simple wave eqn example. I think I get it, more or less. 
+-next time burgers eqn
+
+-Read bulk of murman cole method (6.2) I think I get it. More background reading next time, small dist transonic discontniuties, ch2, and a bit on gauss sidel line relaxation 

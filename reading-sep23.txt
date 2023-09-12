@@ -4,4 +4,11 @@
 -read discontinuities thru simple wave eqn example. I think I get it, more or less. 
 -next time burgers eqn
 
--Read bulk of murman cole method (6.2) I think I get it. More background reading next time, small dist transonic discontniuties, ch2, and a bit on gauss sidel line relaxation 
+-Read bulk of murman cole method (6.2) I think I get it. More background reading next time, small dist transonic discontniuties, ch2, and a bit on gauss sidel line relaxation
+
+9/8/23:
+-back to reading, a few more discontinuities, jacobians. do exercises next
+
+9/12/23:
+-ex2.1-use fundamental thing for jacobians. get F in terms of U, then do it
+-ex2.2-finding jacobians directly is brutal. Not sure if I found it directly incorrectly (probably), but the two aren't , matching. I can see the point though. Part 2 later 

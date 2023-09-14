@@ -11,4 +11,8 @@
 
 9/12/23:
 -ex2.1-use fundamental thing for jacobians. get F in terms of U, then do it
--ex2.2-finding jacobians directly is brutal. Not sure if I found it directly incorrectly (probably), but the two aren't , matching. I can see the point though. Part 2 later 
+-ex2.2-finding jacobians directly is brutal. Not sure if I found it directly incorrectly (probably), but the two aren't , matching. I can see the point though. (I think I just multiplied in wrong oder. Not redoing this tho)
+
+9/14/23:
+-Read through halfwy numerical approximation. (Ch3.) good stuff, I like this stuff
+-actually read the mesh generation ideas for the small disturbance transonic exercise. It's not body fitted, since its a thin airfoil assumption in the governing eqn anyway, we can just have y=0 represent the airfoil. Work on this again this weeked I think. 

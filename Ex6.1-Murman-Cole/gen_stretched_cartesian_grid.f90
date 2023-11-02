@@ -24,8 +24,6 @@ function dkap_fun(kappa, D, JL) result(fp)
           
       fp = -D*(((-exp(kappa)*(exp(kappa*(1/(real(JL,kflt)-1)))-1))/((exp(kappa)-1)**2)) &
               + ((exp(kappa*(1/(real(JL,kflt)-1))))/((JL-1)*(exp(kappa)-1))))
-	  !fp =  (((-exp(kappa)*(exp(kappa*(1/(real(JL,kflt)-1)))-1))/((exp(kappa)-1)**2)) &
-      !        + ((exp(kappa*(1/(real(JL,kflt)-1))))/((JL-1)*(exp(kappa)-1))))
 end function dkap_fun
 
 function find_kappa(D, JL, d_min) result (kappa)
@@ -51,7 +49,7 @@ function find_kappa(D, JL, d_min) result (kappa)
 	  
       kappa_k = 1_kflt;
       do kdx = 1, kmax 
-         kappa_kp1 = kappa_k -(kap_fun(kappa_k, D, JL, d_min)/dkap_fun(kappa_k, D,JL))
+         kappa_kp1 = kappa_k - (kap_fun(kappa_k, D, JL, d_min)/dkap_fun(kappa_k, D,JL))
 !         print *, "kappa=", kappa_k, ", f(kappa)=",kap_fun(kappa_k, D, real(grid_Npts,kflt), dy_min), &
 !                 ", df(kappa)/dkappa=", dkap_fun(kappa_k, D, real(grid_Npts,kflt)) 
          kappa_k = kappa_kp1
@@ -104,7 +102,7 @@ program murman_cole
       !Assign vars explicitly
       gridOutPath = 'grid.txt'
       D = 50*c
-	  dx_min = c/real(grid_airfoilNpts-1,kflt)
+	  dx_min = c/real(grid_airfoilNpts,kflt)
       dy_min = th/10 
      
       print *, D, dx_min, dy_min
@@ -116,7 +114,7 @@ program murman_cole
 	  !y
       grid_y(1) = 0_kflt
       do jdx=2,grid_Npts
-          grid_y(jdx) = grid_y(jdx-1)+D*((exp(kappa_y*((real(jdx,kflt)-1)/(real(grid_Npts,kflt)-1)))-1)/(exp(kappa_y)-1))
+          grid_y(jdx) = grid_y(1)+D*((exp(kappa_y*((real(jdx,kflt)-1)/(real(grid_Npts,kflt)-1)))-1)/(exp(kappa_y)-1))
 !          print *, grid_y(jdx) 
       end do 
 	  
@@ -127,9 +125,10 @@ program murman_cole
 			grid_x(idx) = grid_x(idx-1) + c/real(grid_airfoilNpts-1,kflt)
 	  end do
 	  !stretched portion right
-	  grid_x_str(1) = 0_kflt;
+	  grid_x_str(1) = 0_kflt+dx_min;
+	  
 	  do idx=2, grid_xStrechNpts
-         grid_x_str(idx) = grid_x_str(idx-1)+D*((exp(kappa_x*((real(idx,kflt)-1)/ &
+         grid_x_str(idx) = grid_x_str(1)+D*((exp(kappa_x*((real(idx,kflt)-1)/ &
 		 (real(grid_xStrechNpts,kflt)-1)))-1)/(exp(kappa_x)-1))
         ! print *, grid_x_str(idx) 
       end do
@@ -137,21 +136,13 @@ program murman_cole
 	  grid_x(1:grid_xStrechNpts) = -1*grid_x_str(grid_xStrechNpts:1:-1)
 	  grid_x(grid_xStrechNpts+grid_airfoilNpts+1:grid_Npts) = c + grid_x_str
 	  
-	  
-	  
-	  do idx=1,grid_Npts
-		print *, grid_x(idx);
-	  end do
-	  
-	  
-	  
-
-      open (newunit=io, file=gridOutPath, status="replace", action="write")
-      do idx=1, grid_Npts  
-          write(io, *) grid_x(idx), " ", 0
-      end do
-     
-      close(io)
+	  open (newunit=io, file=gridOutPath, status="replace", action="write")
+	  do idx=1, grid_Npts
+		 do jdx=1, grid_Npts
+		 	write(io, *) grid_x(idx), " ", grid_y(jdx)
+		 end do
+	   end do
+      
 !      do idx=1, circ_Npts
           
 !      end do

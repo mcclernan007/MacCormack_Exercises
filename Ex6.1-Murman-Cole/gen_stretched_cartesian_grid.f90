@@ -24,6 +24,8 @@ function dkap_fun(kappa, D, JL) result(fp)
           
       fp = -D*(((-exp(kappa)*(exp(kappa*(1/(real(JL,kflt)-1)))-1))/((exp(kappa)-1)**2)) &
               + ((exp(kappa*(1/(real(JL,kflt)-1))))/((JL-1)*(exp(kappa)-1))))
+	  !fp =  (((-exp(kappa)*(exp(kappa*(1/(real(JL,kflt)-1)))-1))/((exp(kappa)-1)**2)) &
+      !        + ((exp(kappa*(1/(real(JL,kflt)-1))))/((JL-1)*(exp(kappa)-1))))
 end function dkap_fun
 
 function find_kappa(D, JL, d_min) result (kappa)
@@ -134,17 +136,22 @@ program murman_cole
 	  
 	  grid_x(1:grid_xStrechNpts) = -1*grid_x_str(grid_xStrechNpts:1:-1)
 	  grid_x(grid_xStrechNpts+grid_airfoilNpts+1:grid_Npts) = c + grid_x_str
+	  
+	  
+	  
 	  do idx=1,grid_Npts
 		print *, grid_x(idx);
 	  end do
 	  
+	  
+	  
 
-!      open (newunit=io, file=gridOutPath, status="replace", action="write")
-!      do idx=1, grid_Npts  
-!          write(io, *) circ_xy(idx,1),  circ_xy(idx,2)
-!      end do
-      
-!      close(io)
+      open (newunit=io, file=gridOutPath, status="replace", action="write")
+      do idx=1, grid_Npts  
+          write(io, *) grid_x(idx), " ", 0
+      end do
+     
+      close(io)
 !      do idx=1, circ_Npts
           
 !      end do

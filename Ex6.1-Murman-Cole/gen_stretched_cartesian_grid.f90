@@ -57,7 +57,7 @@ function find_kappa(D, JL, d_min) result (kappa)
       kappa= kappa_kp1
 end function find_kappa
 
-program murman_cole
+program gen_grid
       implicit none 
       
       integer, parameter :: kint = SELECTED_INT_KIND(16) !general int, 16 digits
@@ -137,6 +137,7 @@ program murman_cole
 	  grid_x(grid_xStrechNpts+grid_airfoilNpts+1:grid_Npts) = c + grid_x_str
 	  
 	  open (newunit=io, file=gridOutPath, status="replace", action="write")
+	  write(io,*) grid_Npts*grid_Npts
 	  do idx=1, grid_Npts
 		 do jdx=1, grid_Npts
 		 	write(io, *) grid_x(idx), " ", grid_y(jdx)
@@ -149,4 +150,4 @@ program murman_cole
 
 
 
-end program murman_cole
+end program gen_grid

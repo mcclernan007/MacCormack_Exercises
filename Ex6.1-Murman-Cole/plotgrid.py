@@ -35,6 +35,7 @@ def readXYDataFile(filename):
         lines = f.readlines()
     x = np.empty(len(lines));
     y = np.empty(len(lines));
+    lines = lines[1:-1] #rm number points (first entry)
     for line, idx in zip(lines,list(range(0,len(lines)))) :
         curLine = line.split()
         x[idx] = float(curLine[0])

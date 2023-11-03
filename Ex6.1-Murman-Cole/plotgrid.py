@@ -17,19 +17,14 @@ def plotGrid(xNodes,yNodes):
     yRaw = np.sort(np.unique(yNodes));
     
     plt.figure()
-    #interior
-    for idx in list(range(1,len(xRaw)-1)):
-        for jdx in list(range(1,len(yRaw)-1)):
-            plt.plot(xRaw[idx-1:idx+2],yRaw[jdx]*np.array([1,1,1]),color=myColor,linewidth=myWidth)
-            plt.plot(xRaw[idx]*np.array([1,1,1]),yRaw[jdx-1:jdx+2],color=myColor,linewidth=myWidth)
-    #edges
+    #hlines
     for idx in list(range(1,len(xRaw))):
-        plt.plot(xRaw[idx-1:idx+1],yRaw[0]*np.array([1,1]),color=myColor,linewidth=myWidth)
-        plt.plot(xRaw[idx-1:idx+1],yRaw[-1]*np.array([1,1]),color=myColor,linewidth=myWidth)
-    for jdx in list(range(1,len(xRaw))):
-        plt.plot(xRaw[0]*np.array([1,1]),yRaw[jdx-1:jdx+1],color=myColor,linewidth=myWidth)
-        plt.plot(xRaw[-1]*np.array([1,1]),yRaw[jdx-1:jdx+1],color=myColor,linewidth=myWidth)
-                
+        for jdx in list(range(0,len(yRaw))):
+            plt.plot(xRaw[idx-1:idx+1],yRaw[jdx]*np.array([1,1]),color=myColor,linewidth=myWidth)
+    #vlines
+    for idx in list(range(0,len(xRaw))):
+        for jdx in list(range(1,len(yRaw))):    
+            plt.plot(xRaw[idx]*np.array([1,1]),yRaw[jdx-1:jdx+1],color=myColor,linewidth=myWidth)
     #plt.scatter(xNodes,yNodes)
     
     plt.show()        

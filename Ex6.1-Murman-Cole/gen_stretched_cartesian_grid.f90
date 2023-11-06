@@ -75,9 +75,10 @@ program gen_grid
       character(:), allocatable :: gridOutPath
 
       !parameters
-      integer(kint), parameter :: grid_Npts = 51_kint !# grid points
+      integer(kint), parameter :: grid_x_Npts = 51_kint !# grid points
+	  integer(kint), parameter :: grid_y_Npts = 51_kint !# grid points
 	  integer(kint), parameter :: grid_airfoilNpts = 21_kint !# grid const dx points on af
-	  integer(kint), parameter :: grid_xStrechNpts = (grid_Npts-grid_airfoilNpts)/2 !#grid pts to stretch 
+	  integer(kint), parameter :: grid_xStrechNpts = (grid_x_Npts-grid_airfoilNpts)/2 !#grid pts to stretch 
 	  
       real(kflt), parameter :: c = 1.0_kflt !chord
       real(kflt), parameter :: th = 0.06_kflt !airfoil thickness (dfines dy_min)
@@ -92,8 +93,8 @@ program gen_grid
 	  real(kflt) :: kappa_y !final val kappa for y dir
 	  
       real(kflt), dimension(grid_xStrechNpts) :: grid_x_str
-      real(kflt), dimension(grid_Npts) :: grid_x
-      real(kflt), dimension(grid_Npts) :: grid_y
+      real(kflt), dimension(grid_x_Npts) :: grid_x
+      real(kflt), dimension(grid_y_Npts) :: grid_y
 
       integer(kint) :: idx !general indexes. Should only use in loops
       integer(kint) :: jdx
@@ -108,13 +109,13 @@ program gen_grid
       print *, D, dx_min, dy_min
       !find kappa for grid spacing
       kappa_x = find_kappa(D, grid_xStrechNpts, dx_min)
-	  kappa_y = find_kappa(D, grid_Npts,dy_min)
+	  kappa_y = find_kappa(D, grid_y_Npts,dy_min)
 
       !Generate Grid with found kappa
 	  !y
       grid_y(1) = 0_kflt
-      do jdx=2,grid_Npts
-          grid_y(jdx) = grid_y(1)+D*((exp(kappa_y*((real(jdx,kflt)-1)/(real(grid_Npts,kflt)-1)))-1)/(exp(kappa_y)-1))
+      do jdx=2,grid_y_Npts
+          grid_y(jdx) = grid_y(1)+D*((exp(kappa_y*((real(jdx,kflt)-1)/(real(grid_y_Npts,kflt)-1)))-1)/(exp(kappa_y)-1))
 !          print *, grid_y(jdx) 
       end do 
 	  
@@ -134,12 +135,12 @@ program gen_grid
       end do
 	  
 	  grid_x(1:grid_xStrechNpts) = -1*grid_x_str(grid_xStrechNpts:1:-1)
-	  grid_x(grid_xStrechNpts+grid_airfoilNpts+1:grid_Npts) = c + grid_x_str
+	  grid_x(grid_xStrechNpts+grid_airfoilNpts+1:grid_x_Npts) = c + grid_x_str
 	  
 	  open (newunit=io, file=gridOutPath, status="replace", action="write")
-	  write(io,*) grid_Npts*grid_Npts
-	  do idx=1, grid_Npts
-		 do jdx=1, grid_Npts
+	  write(io,*) grid_x_Npts*grid_y_Npts, grid_x_Npts, grid_y_Npts
+	  do idx=1, grid_x_Npts
+		 do jdx=1, grid_y_Npts
 		 	write(io, *) grid_x(idx), " ", grid_y(jdx)
 		 end do
 	   end do

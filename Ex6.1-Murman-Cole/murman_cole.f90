@@ -1,74 +1,64 @@
-! subroutine read_grid_file(filepath,xy)
-	! implicit none
-	! integer, parameter :: kint = SELECTED_INT_KIND(16) !general int, 16 digits
-	! integer, parameter :: kflt = SELECTED_REAL_KIND(9,10) !general float, 9 digits, max val 1e10
-	! integer, parameter :: kdub = SELECTED_REAL_KIND(20,200) !general "double", 20 digits,
-	! integer :: io
-	! logical :: exists
-	! integer(kint) :: Npts
-	! character(:), allocatable, intent(in) :: filepath
-	! real(kdub), allocatable, intent(inout) :: xy(:,:)
-	
-	! integer(kint) :: idx
-	! inquire(file=filepath, exist=exists)
-	! if (exists) then
-		! open (newunit=io, file=filepath, action="read")
-		! read(io,*) Npts
-		! allocate(xy(Npts,2))
-		
-		! do idx=1, Npts, 1
-			! read(io,*) xy(idx,1), xy(idx,2)
-		! end do
-	  
-		! close(io)
-	! end if
-! end subroutine read_grid_file
-
-!interface 
-!	real(kdub, allocatable(:,:) subroutine read_grid_file(filepath,xy):
-!		real(kdub), allocatable, intent(inout) :: xy(:,:)
-!		character(:), allocatable, intent(in) :: filepath
-
-!end interface
-
 program murman_cole
 	implicit none
 	 
-    integer, parameter :: kint = SELECTED_INT_KIND(16) !general int, 16 digits
+	integer, parameter :: kint = SELECTED_INT_KIND(16) !general int, 16 digits
 	integer, parameter :: kflt = SELECTED_REAL_KIND(9,10) !general float, 9 digits, max val 1e10
 	integer, parameter :: kdub = SELECTED_REAL_KIND(20,200) !general "double", 20 digits,
-    
-!function return types
-	real(kdub):: read_grid_file
 	
-	character(:), allocatable :: filepath
-	real(kdub), allocatable :: xy(:,:)
-	
-	integer(kint) :: idx
 	integer :: io
 	logical :: exists
-	integer(kint) :: Npts
+	
+	character(:), allocatable :: grid_path
+	real(kdub) :: M
+	real(kdub) :: curX
+	integer(kint) :: nstop
+	
+	real(kdub), allocatable :: nodes_xy(:,:) !dimensions=M*Nx2 format i1 j1; i1 j2;... i1 jn; i2 j1;... im jn
+	real(kdub), allocatable :: grid_x(:,:) !dimensions M*N
+	real(kdub), allocatable :: grid_y(:,:) !dimensions M*N
+	real(kdub), allocatable :: A(:,:)      !dimensions M*N
+	
+	integer(kint) :: idx
+	integer(kint) :: jdx
+	integer(kint) :: kdx
+	integer(kint) :: Npts !prob wasteful to save this too. 
+	integer(kint) :: Nxpts
+	integer(kint) :: Nypts
 	
 	
-	filepath = "./grid.txt"
-	!call read_grid_file(grid_path,xy)
+	M = 0.735_kdub
+	!M = 0.908_kdub
+	nstop = 400_kint
+	grid_path = "./grid.txt"
 	
 	
-	inquire(file=filepath, exist=exists)
+	!should do in function or subroutine, but don't quite know how to return an allocatable array. Probably a syntatic problem
+	!call read_grid_file(grid_path,nodes_xy)
+	inquire(file=grid_path, exist=exists)
 	if (exists) then
-		open (newunit=io, file=filepath, action="read")
-		read(io,*) Npts
-		allocate(xy(Npts,2))
-		
-		do idx=1, Npts, 1
-			read(io,*) xy(idx,1), xy(idx,2)
+		open (newunit=io, file=grid_path, action="read")
+		read(io,*) Npts, Nxpts, Nypts
+		allocate(nodes_xy(Npts,2))
+		allocate(grid_x(Nxpts,Nypts))
+		allocate(grid_y(Nxpts,Nypts))
+		kdx = 1
+		do idx=1, Nxpts, 1
+			do jdx=1, Nypts, 1
+				read(io,*) grid_x(idx,jdx),grid_y(idx,jdx)
+				nodes_xy(kdx,1) = grid_x(idx,jdx)
+				nodes_xy(kdx,2) = grid_y(idx,jdx)
+				kdx = kdx+1
+			end do
 		end do
 	  
 		close(io)
+		else
+			print *, "could not find a grid at path: " , grid_path
+			error stop
 	end if
-	
-	do idx = 1,size(xy,1),1
-		print *, xy(idx,1), xy(idx,2)
-	end do
+	allocate(A(Nxpts,Nypts))
+	allocate(mu(Nxpts,Nypts))
+	allocate(phi_n(Nxpts,Nypts))
+	allocate(phi_np1(Nxpts,Nypts))
 	
 end program murman_cole

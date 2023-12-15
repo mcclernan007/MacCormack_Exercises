@@ -33,6 +33,10 @@ end function explicit_bw
 program wave_eqn_ex
 	implicit none
 	
+	!io
+    integer :: io
+    character(:), allocatable :: outPath
+	
 	integer, parameter :: I = 41 !number mesh points
 	integer, parameter :: N = 10 !number iterations
 	real, parameter :: CFL = 0.9d0
@@ -77,9 +81,14 @@ program wave_eqn_ex
 	end do
 	
 	u = explicit_bw(x, dt, N, u_IC, u0, c)!method 1
-	do idx = 1,I
-		print *, x(idx), u_IC(idx),u(idx) 
+	
+	outPath = "explicit_bw.dat" !functionalize
+	open (newunit=io, file=outPath, status="replace", action="write")
+	write(io,*) I
+	do idx=1, I
+		write(io, *) x(idx),"  ", u_IC(idx),"  ", u(idx)
 	end do
+	 
 	
 	!u = explicit_fw(x, u_IC, dt, N)!method 2
 	!u = explicit_cent(x, u_IC, dt, N)!method 3

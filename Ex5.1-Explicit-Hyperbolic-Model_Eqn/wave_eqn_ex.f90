@@ -194,7 +194,7 @@ function explicit_james(x, dt, N, u_IC, u_BC, c) result(u_np1)
 			end do
 			!treat final node as bw difference
 			idx = size(x) 
-			u_k(idx) = u_k(idx)-(c*dt)/dx*(u_k(idx)-u_k(idx-1))
+			u_k(idx) = u_km1(idx)-(c*dt)/dx*(u_km1(idx)-u_km1(idx-1))
 			u_km1 = u_k
 		end do
 		!treat final node as bw difference
@@ -314,7 +314,7 @@ program wave_eqn_ex
 	real :: dt, dt2
 	
 	real,dimension(I) :: u
-	real :: u_IC(I) 
+	real :: u_IC(I),u_exact1(I),u_exact2(I)
 	
 	interface !is this really the best way to do this? Lots of repeated code.
 		function explicit_bw(x, dt, N, u_IC, u_BC, c) result(u_np1)
@@ -390,13 +390,35 @@ program wave_eqn_ex
 	dt = (CFL*dx)/abs(c)
 	dt2 = (2.0d0*dx)/abs(c)
 	
-	do idx = 1,I !IC prob should be defined w/ parameters
+	!IC prob should be defined w/ parameters
+	do idx = 1,I 
 		if (x(idx)<=0.5) then
 			u_IC(idx) = 1
 		else
 			u_IC(idx) = 0.5
 		end if
 	end do
+	
+	!exact solutions
+	
+	do idx = 1,I 
+		if (x(idx)<=(0.5d0+c*N*dt)) then
+			u_exact1(idx) = 1
+		else
+			u_exact1(idx) = 0.5
+		end if
+	end do
+	
+	do idx = 1,I 
+		if (x(idx)<=(0.5d0+c*N*dt2)) then
+			u_exact2(idx) = 1
+		else
+			u_exact2(idx) = 0.5
+		end if
+	end do
+	
+	call output_result("exact_soln1.dat",x,u_IC,u_exact1)
+	call output_result("exact_soln2.dat",x,u_IC,u_exact2)
 	
 	!method 1
 	u = explicit_bw(x, dt, N, u_IC, u0, c)
@@ -437,5 +459,6 @@ program wave_eqn_ex
 	!method 11
 	u = explicit_upwind(x, dt, N, u_IC, u0, c)
 	call output_result("explicit_upwind.dat", x, u_IC, u)
+	
 	
 end program wave_eqn_ex

@@ -35,7 +35,6 @@ def readDataFile(filename):
         lines = f.readlines()
     
     lines = lines[1:-1] #rm number points (first entry)
-    print(lines)
     x = np.empty(len(lines));
     u_IC = np.empty(len(lines));
     u = np.empty(len(lines));
@@ -49,7 +48,7 @@ def readDataFile(filename):
 datafile = sys.argv[1];
 x,u_IC,u = readDataFile(datafile)
 #print([x,u_IC,u])
-plt.plot(x,u_IC,color='#101010',linestyle='dashed')
+plt.plot(x,u_IC,color='#999999',linestyle='dashed')
 plt.plot(x,u)
 plt.show()
 #plotGrid(xNodes,yNodes);

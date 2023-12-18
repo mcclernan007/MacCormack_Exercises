@@ -311,7 +311,7 @@ program wave_eqn_ex
 	
 	real :: x(I)
 	real :: dx
-	real :: dt, dt2
+	real :: dt, dt2,dt3
 	
 	real,dimension(I) :: u
 	real :: u_IC(I),u_exact1(I),u_exact2(I)
@@ -389,6 +389,7 @@ program wave_eqn_ex
 	
 	dt = (CFL*dx)/abs(c)
 	dt2 = (2.0d0*dx)/abs(c)
+	dt3 = (1.0d0*dx)/abs(c) !problem 5.2
 	
 	!IC prob should be defined w/ parameters
 	do idx = 1,I 
@@ -459,6 +460,30 @@ program wave_eqn_ex
 	!method 11
 	u = explicit_upwind(x, dt, N, u_IC, u0, c)
 	call output_result("explicit_upwind.dat", x, u_IC, u)
+	
+	!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!Problem 5.2
+	!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!TODO: off by one? should be exact soln
+	!method 1
+	u = explicit_bw(x, dt3, N, u_IC, u0, c)
+	call output_result("perfect_shift_bw.dat", x, u_IC, u)
+	
+	!method 6
+	u = explicit_lax(x, dt3, N, u_IC, u0, c)
+	call output_result("perfect_shift_lax.dat", x, u_IC, u)
+	
+	!method 7
+	u = explicit_lax_wend(x, dt3, N, u_IC, u0, c)
+	call output_result("perfect_shift_lax_wend.dat", x, u_IC, u)
+	
+	!method 8
+	u = explicit_macc(x, dt3, N, u_IC, u0, c)
+	call output_result("perfect_shift_macc.dat", x, u_IC, u)
+	
+	!method 10
+	u = explicit_warm_beam(x, dt3, N, u_IC, u0, c)
+	call output_result("perfect_shift_warm_beam.dat", x, u_IC, u)
 	
 	
 end program wave_eqn_ex

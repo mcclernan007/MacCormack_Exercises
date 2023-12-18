@@ -29,7 +29,7 @@ def plotResult(x,u_IC,u,u_exact,outFilePath):
     plt.figure()
     plt.plot(x,u_IC,color='#999999',linestyle='dashed')
     plt.plot(x,u_exact,color='#999999',linestyle='dashdot')
-    plt.plot(x,u)
+    plt.plot(x,u,marker='.')
     plt.title(outFilePath)
     #plt.show()
     plt.savefig(outFilePath)

@@ -58,7 +58,7 @@ program wave_eqn_ex
 	real, parameter :: u0 = 1d0 !left BC
 	
 	real, dimension(I) :: x, u, u_IC, u_exact1, u_exact2
-	real :: dx, dt1, dt2,
+	real :: dx, dt1, dt2
 	
 	interface !is this really the best way to do this? Lots of repeated code.
 		function implicit_alph(x, dt, N, u_IC, u_BC, c, alph) result(u_np1)
@@ -117,11 +117,11 @@ program wave_eqn_ex
 	call output_result("exact_soln2.dat",x,u_IC,u_exact2)
 	
 	!method 4 fully implicit, central
-	u = explicit_alpha(x, dt, N, u_IC, u0, c)
-	call output_result("implicit_central.dat", x, u_IC, u, 1.0d0)
+	u = implicit_alph(x, dt1, N, u_IC, u0, c, 1.0e0)
+	call output_result("implicit_central.dat", x, u_IC, u)
 	
 	!method 5 crank-nicholson (implicit)
-	u = explicit_fw(x, dt, N, u_IC, u0, c)
-	call output_result("crank_nich.dat", x, u_IC, u, 0.5d0)
+	u = implicit_alph(x, dt1, N, u_IC, u0, c, 0.5e0)
+	call output_result("crank_nich.dat", x, u_IC, u)
 	
 end program wave_eqn_ex

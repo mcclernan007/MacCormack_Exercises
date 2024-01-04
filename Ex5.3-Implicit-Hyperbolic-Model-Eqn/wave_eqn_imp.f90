@@ -149,7 +149,7 @@ program wave_eqn_imp
 	real, dimension(I) :: x, u, u_IC, u_exact1, u_exact2
 	real :: dx, dt1, dt2
 	
-	interface !is this really the best way to do this? Lots of repeated code.
+	interface
 		function implicit_alph(x, dt, N, u_IC, u_BC, c, alph) result(u_n)
 			real, dimension(1:), intent(in) :: x, u_IC
 			real, intent(in) 				:: dt, u_BC, c, alph

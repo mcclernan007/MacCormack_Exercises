@@ -63,23 +63,25 @@ def readXYDataFile(filename):
 xydatafile = sys.argv[1];
 x,y, phi,u,v= readXYDataFile(xydatafile)
 
-print(x[:,1])
-plt.figure()
+#print(x[:,1])
+#plt.figure()
 #plt.plot(x[:,1],v[:,1])
-plt.scatter(x[:,:],u[:,:])
+#plt.scatter(x[:,:],u[:,:])
 #plt.plot(x[:,2],v[:,2],"--")
-plt.xlim([-0.5,1.5])
-plt.show()
+#plt.xlim([-0.5,1.5])
+#plt.show()
 
 #plotGrid(xNodes,yNodes);
 plt.figure()
 #plt.scatter(x,y,20,phi)
-plt.quiver(x,y,u*10000,v*10000)
-plt.ylim([0,0.1])
-plt.xlim([-0.5,1.5])
+
+#plt.ylim([0,0.1])
+#plt.xlim([-0.5,1.5])
+plt.contourf(x,y,u,100)
+#plt.quiver(x,y,u*10000,v*10000)
 
 plt.colorbar()
-plt.contour(x,y,phi,1000)
+
 plt.show()
 
 

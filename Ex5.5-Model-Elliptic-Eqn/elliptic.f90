@@ -45,22 +45,32 @@ subroutine output_result(path, xy, phi_n,u,v,I,J)
 	close(io)
 end subroutine output_result
 
-subroutine output_cp(path, x, Cp, I)
-	implicit none 
-	character(*), intent(in) :: path
-	integer, intent(in) :: I
-	real, dimension(I), intent(in) :: x,Cp
-	!character, allocatable, intent(in) :: outpath(:)
-	integer :: io
-	integer :: idx,jdx
-	
-	open (newunit=io, file=path, status="replace", action="write")
-	write(io,*) I
-	do idx=1, I
-		write(io, *) x(idx),"  ", Cp(idx)
-	end do
-	close(io)
-end subroutine output_cp
+!subroutine output_cp(path, x, Cp, I) !TODO fix me!
+!	implicit none 
+!	character(*), intent(in) :: path
+!	integer, intent(in) :: I
+!	real, dimension(I), intent(in) :: x,Cp
+!	!character, allocatable, intent(in) :: outpath(:)
+!	integer :: io
+!	integer :: idx,jdx
+!	
+!	allocate(xCp(I))
+!	allocate(Cp(I))
+!	do idx = 1,I
+!		xCp(idx) = x(idx,1)
+!		P = P_inf*((1d0-(gama-1d0)/(2d0)*(M**2d0)*((u(idx,1)**2+v(idx,1)**2/(M*sqrt(gama*P_inf/rho_inf))-1d0)))**((gama-1d0)/gama))
+!		Cp(idx) = (P_inf-P)/(0.5d0*rho_inf* (M*sqrt(gama*P_inf/rho_inf))**2d0)
+!	end do
+!	
+!	
+!	
+!	open (newunit=io, file=path, status="replace", action="write")
+!	write(io,*) I
+!	do idx=1, I
+!		write(io, *) x(idx),"  ", Cp(idx)
+!	end do
+!	close(io)
+!end subroutine output_cp
 
 function get_IC(xy,I,J,c,th,M,gama,P_inf,rho_inf) result(phi_IC)
 	implicit none
@@ -249,6 +259,96 @@ function point_jacobi(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) result (
 	close(io)
 end function point_jacobi
 
+function point_gauss_seidel(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) result (phi_n)
+	implicit none
+	
+	integer, intent(in)					:: nstop,I,J
+	real, dimension(2,I,J), intent(in) 	:: xy
+	real, dimension(I,J), intent(in)	:: phi_IC
+	real, intent(in)					:: c, th, M, gama,P_inf,rho_inf
+	
+	real, allocatable 	:: phi_n(:,:),x(:,:),y(:,:)
+	integer				:: ndx,idx,jdx,io
+	real				:: A, Bi, dtxi, dtyi, dphidy,  r, xb 
+	real				:: res, lres
+	
+	allocate(phi_n(I,J))
+	allocate(x(I,J))
+	allocate(y(I,J))
+	x = xy(1,:,:)
+	y = xy(2,:,:)
+	
+	A = 1d0-M**2d0
+	r = (c**2d0+th**2d0)/(4d0*th)
+	
+	phi_n(:,:) = phi_IC(:,:)
+	
+	open (newunit=io, file="2-point_gauss_sidel-resid.dat", status="replace", action="write")
+	
+	do ndx = 1,nstop	
+		!Main loops
+		do idx = 2,I-1
+			do jdx = 2,J-1
+				!nonuniform spacing makes this super messy
+				dtxi = (x(idx+1,jdx) - x(idx-1,jdx))/2d0
+				dtyi = (y(idx,jdx+1) - y(idx,jdx-1))/2d0
+				Bi = A/dtxi*(1d0/(x(idx+1,jdx)-x(idx,jdx)) + 1d0/(x(idx,jdx)-x(idx-1,jdx))) + &
+				   1d0/dtyi*(1d0/(y(idx,jdx+1)-y(idx,jdx)) + 1d0/(y(idx,jdx)-y(idx,jdx-1)))
+				
+				!B of index i, not inverse
+				phi_n(idx,jdx) = 1d0/Bi*(A/dtxi*(phi_n(idx+1,jdx)/(x(idx+1,jdx)-x(idx,jdx))) + &
+								  A/dtxi*(phi_n(idx-1,jdx)/(x(idx,jdx)-x(idx-1,jdx))) + &
+								1d0/dtyi*(phi_n(idx,jdx+1)/(y(idx,jdx+1)-y(idx,jdx))) + &
+								1d0/dtyi*(phi_n(idx,jdx-1)/(y(idx,jdx)-y(idx,jdx-1))))
+			end do 
+		end do
+		
+		!Set BCs
+		!inlet,outlet, and top are const phi
+		do jdx=1,J
+			phi_n(1,jdx)   = M*sqrt(gama*P_inf/rho_inf)*x(1,jdx) !left
+			phi_n(I,jdx)   = M*sqrt(gama*P_inf/rho_inf)*x(I,jdx) !right
+		end do 
+		
+		do idx=1,I
+			phi_n(idx,J)   = M*sqrt(gama*P_inf/rho_inf)*x(idx,J) !top  
+		end do 
+		
+		!bottom is either dphi/dy=0 (symmetry) or dphi/dy = V_inf*(dy/dx)_body (slip no pen)
+		do idx=1,I
+			if (x(idx,1)<0d0 .or. x(idx,1)>c) then	
+				dphidy = 0d0
+			else
+				xb = r*cos(atan2((r-0.5e0*th),(x(idx,1)-c/2e0)))+0.5d0*c!body x (x is chord line)
+				dphidy = M*sqrt(gama*P_inf/rho_inf) * (xb-c/2d0)/(r*sqrt(1d0-((xb**2d0-c/2d0)/(r))**2))
+			end if
+			phi_n(idx,1)   = phi_n(idx,2)-dphidy*(x(idx,2)-x(idx,1)) !bottom
+		end do 
+		
+		!compute and print residual, print, continue
+		!res = norm2(phi_n-phi_np1)		
+		res = 1d-30
+		do idx = 2,I-1
+			do jdx = 2,J-1
+				lres = abs(A*( &
+				(((phi_n(idx+1,jdx) - phi_n(idx,jdx))/(x(idx+1,jdx)-x(idx,jdx))) - &
+				 ((phi_n(idx,jdx) - phi_n(idx-1,jdx))/(x(idx,jdx) - x(idx-1,jdx)))) / &
+				 (0.5d0*(x(idx+1,jdx)-x(idx-1,jdx)))) +  &
+				 ((((phi_n(idx,jdx+1) - phi_n(idx,jdx))/(y(idx,jdx+1)-y(idx,jdx))) - &
+				  ((phi_n(idx,jdx) - phi_n(idx,jdx-1))/(y(idx,jdx) - y(idx,jdx-1)))) / &
+				 (0.5d0*(y(idx,jdx+1)-y(idx,jdx-1))))) !oof
+				if (lres>res) then 
+					!print*, "location of max",idx,jdx
+					res=lres
+				end if
+			end do
+		end do
+		print *,ndx, res
+		write(io,*) ndx, res
+	end do
+	close(io)
+end function point_gauss_seidel
+
 
 
 program elliptic
@@ -282,6 +382,13 @@ program elliptic
 			real, intent(in)					:: c, th, M, gama,P_inf,rho_inf
 			real, allocatable 	:: phi_n(:,:)
 		end function point_jacobi
+		function point_gauss_seidel(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) result(phi_n)
+			integer, intent(in)					:: nstop,I,J
+			real, dimension(2,I,J), intent(in) 	:: xy
+			real, dimension(I,J), intent(in)	:: phi_IC
+			real, intent(in)					:: c, th, M, gama,P_inf,rho_inf
+			real, allocatable 	:: phi_n(:,:)
+		end function point_gauss_seidel
 		function get_IC(xy,I,J,c,th,M,gama,P_inf,rho_inf) result(phi_IC)
 			integer, intent(in)					:: I,J
 			real, dimension(2,I,J), intent(in) 	:: xy
@@ -308,19 +415,15 @@ program elliptic
 	phi_n = point_jacobi(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf)
 	call get_uv(xy, I,J, phi_n, u,v)	
 	call output_result("1-point_jacobi.dat", xy, phi_n,u,v,I,J)
+	!call output_cp("cp_point_jacobi.dat", xy, phi_n,u,v,I,J) !TODO fix
+	
+	!Method 2: Point Gauss-Seidel
+	phi_n = point_gauss_seidel(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf)
+	call get_uv(xy, I,J, phi_n, u,v)	
+	call output_result("2-point_gauss_siedel.dat", xy, phi_n,u,v,I,J)
 	!
 	!
-	!call output_result("point_jacobi.dat", x, y, phi_n,u,v,I,J)
-	!
-	!allocate(xCp(I))
-	!allocate(Cp(I))
-	!do idx = 1,I
-	!	xCp(idx) = x(idx,1)
-	!	P = P_inf*((1d0-(gama-1d0)/(2d0)*(M**2d0)*((u(idx,1)**2+v(idx,1)**2/(M*sqrt(gama*P_inf/rho_inf))-1d0)))**((gama-1d0)/gama))
-	!	Cp(idx) = (P_inf-P)/(0.5d0*rho_inf* (M*sqrt(gama*P_inf/rho_inf))**2d0)
-	!end do
-	!
-	!call output_cp("cp_point_jacobi.dat", xCp, Cp, I)
+	
 	
 	
 	

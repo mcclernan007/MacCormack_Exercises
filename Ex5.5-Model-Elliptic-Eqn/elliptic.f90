@@ -45,32 +45,35 @@ subroutine output_result(path, xy, phi_n,u,v,I,J)
 	close(io)
 end subroutine output_result
 
-!subroutine output_cp(path, x, Cp, I) !TODO fix me!
-!	implicit none 
-!	character(*), intent(in) :: path
-!	integer, intent(in) :: I
-!	real, dimension(I), intent(in) :: x,Cp
-!	!character, allocatable, intent(in) :: outpath(:)
-!	integer :: io
-!	integer :: idx,jdx
-!	
-!	allocate(xCp(I))
-!	allocate(Cp(I))
-!	do idx = 1,I
-!		xCp(idx) = x(idx,1)
-!		P = P_inf*((1d0-(gama-1d0)/(2d0)*(M**2d0)*((u(idx,1)**2+v(idx,1)**2/(M*sqrt(gama*P_inf/rho_inf))-1d0)))**((gama-1d0)/gama))
-!		Cp(idx) = (P_inf-P)/(0.5d0*rho_inf* (M*sqrt(gama*P_inf/rho_inf))**2d0)
-!	end do
-!	
-!	
-!	
-!	open (newunit=io, file=path, status="replace", action="write")
-!	write(io,*) I
-!	do idx=1, I
-!		write(io, *) x(idx),"  ", Cp(idx)
-!	end do
-!	close(io)
-!end subroutine output_cp
+subroutine output_cp(path,xy,u,v,I,J,M,gama,P_inf,rho_inf)
+	implicit none 
+	character(*), intent(in) 			:: path
+	integer, intent(in) 				:: I,J
+	real, dimension(2,I,J), intent(in)	:: xy
+	real, dimension(I,J), intent(in)	:: u,v
+	real, intent(in)					:: M,gama,P_inf,rho_inf
+	
+	integer 			:: io
+	integer 			:: idx,jdx
+	real				:: P
+	real, dimension(I)	:: xCp, Cp
+	
+	!allocate(xCp(I))
+	!allocate(Cp(I))
+	
+	do idx = 1,I
+		xCp(idx) = xy(1,idx,1)
+		P = P_inf*((1d0-(gama-1d0)/(2d0)*(M**2d0)*((u(idx,1)**2+v(idx,1)**2/(M*sqrt(gama*P_inf/rho_inf))-1d0)))**((gama-1d0)/gama))
+		Cp(idx) = (P_inf-P)/(0.5d0*rho_inf* (M*sqrt(gama*P_inf/rho_inf))**2d0)
+	end do
+	
+	open (newunit=io, file=path, status="replace", action="write")
+	write(io,*) I
+	do idx=1, I
+		write(io, *) xCp(idx),"  ", Cp(idx)
+	end do
+	close(io)
+end subroutine output_cp
 
 function get_IC(xy,I,J,c,th,M,gama,P_inf,rho_inf) result(phi_IC)
 	implicit none
@@ -349,8 +352,6 @@ function point_gauss_seidel(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) re
 	close(io)
 end function point_gauss_seidel
 
-
-
 program elliptic
 	implicit none
 	
@@ -415,12 +416,13 @@ program elliptic
 	phi_n = point_jacobi(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf)
 	call get_uv(xy, I,J, phi_n, u,v)	
 	call output_result("1-point_jacobi.dat", xy, phi_n,u,v,I,J)
-	!call output_cp("cp_point_jacobi.dat", xy, phi_n,u,v,I,J) !TODO fix
+	call output_cp("1-cp_point_jacobi.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
 	
 	!Method 2: Point Gauss-Seidel
 	phi_n = point_gauss_seidel(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf)
 	call get_uv(xy, I,J, phi_n, u,v)	
 	call output_result("2-point_gauss_siedel.dat", xy, phi_n,u,v,I,J)
+	call output_cp("2-cp_point_gauss_siedel.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
 	!
 	!
 	

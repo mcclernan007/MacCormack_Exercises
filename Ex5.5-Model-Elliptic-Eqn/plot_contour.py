@@ -3,31 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plotNodes(xdata,ydata):
-    plt.figure()
-    plt.grid()
-    plt.scatter(xdata,ydata)
-    plt.show()
-def plotGrid(xNodes,yNodes):
-    #pretty limited to this type of grid, but good enough for now
-    #Very lazy implementation
-    myColor = "#0072BD"
-    myWidth = 0.5
-    xRaw = np.sort(np.unique(xNodes));
-    yRaw = np.sort(np.unique(yNodes));
-    
-    plt.figure()
-    #hlines
-    for idx in list(range(1,len(xRaw))):
-        for jdx in list(range(0,len(yRaw))):
-            plt.plot(xRaw[idx-1:idx+1],yRaw[jdx]*np.array([1,1]),color=myColor,linewidth=myWidth)
-    #vlines
-    for idx in list(range(0,len(xRaw))):
-        for jdx in list(range(1,len(yRaw))):    
-            plt.plot(xRaw[idx]*np.array([1,1]),yRaw[jdx-1:jdx+1],color=myColor,linewidth=myWidth)
-    #plt.scatter(xNodes,yNodes)
-    
-    plt.show()        
 #    x = 
     
 def readXYDataFile(filename):
@@ -73,11 +48,11 @@ x,y, phi,u,v= readXYDataFile(xydatafile)
 
 #plotGrid(xNodes,yNodes);
 plt.figure()
-#plt.scatter(x,y,20,phi)
+plt.scatter(x,y,20,v)
 
-#plt.ylim([0,0.1])
-#plt.xlim([-0.5,1.5])
-plt.contourf(x,y,u,100)
+plt.ylim([0,0.1])
+plt.xlim([-0.5,1.5])
+#plt.contourf(x,y,v,100)
 #plt.quiver(x,y,u*10000,v*10000)
 
 plt.colorbar()

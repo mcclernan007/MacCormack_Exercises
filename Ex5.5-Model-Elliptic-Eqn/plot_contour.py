@@ -48,11 +48,11 @@ x,y, phi,u,v= readXYDataFile(xydatafile)
 
 #plotGrid(xNodes,yNodes);
 plt.figure()
-plt.scatter(x,y,20,v)
+#plt.scatter(x,y,20,phi)
 
-plt.ylim([0,0.1])
-plt.xlim([-0.5,1.5])
-#plt.contourf(x,y,v,100)
+#plt.ylim([0,0.1])
+#plt.xlim([-0.5,1.5])
+plt.contourf(x,y,u,100)
 #plt.quiver(x,y,u*10000,v*10000)
 
 plt.colorbar()

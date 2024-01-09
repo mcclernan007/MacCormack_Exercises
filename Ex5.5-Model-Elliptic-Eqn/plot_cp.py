@@ -28,9 +28,11 @@ xydatafile = sys.argv[1];
 x,Cp= readXYDataFile(xydatafile)
 
 
-plt.figure()
-plt.plot(x,Cp)
+fig = plt.figure()
+myplot = plt.plot(x,Cp)
 plt.scatter(x,Cp)
 #plt.plot(x[:,2],v[:,2],"--")
-#plt.xlim([-0.5,1.5])
+plt.xlim([-0.5,1.5])
+#plt.ylim([-0.2,0.3])
+plt.gca().invert_yaxis()
 plt.show()

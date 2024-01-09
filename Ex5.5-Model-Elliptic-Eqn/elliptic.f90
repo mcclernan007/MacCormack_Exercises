@@ -135,15 +135,29 @@ subroutine get_uv(xy, I,J, phi_n, u,v)
 	
 	!edges
 	do idx = 2,I-1
+		!u can be central
 		jdx = 1
 		u(idx,jdx) = (phi_n(idx+1,jdx)-phi_n(idx-1,jdx))/(x(idx+1,jdx)-x(idx-1,jdx))
 		jdx = J
 		u(idx,jdx) = (phi_n(idx+1,jdx)-phi_n(idx-1,jdx))/(x(idx+1,jdx)-x(idx-1,jdx))
+		
+		!v needs 1 directional (f/w or b/w)
+		jdx = 1
+		v(idx,jdx) = (phi_n(idx,jdx+1)-phi_n(idx,jdx))/(y(idx,jdx+1)-y(idx,jdx))
+		jdx = J
+		v(idx,jdx) = (phi_n(idx,jdx)-phi_n(idx,jdx-1))/(y(idx,jdx)-y(idx,jdx-1))
 	end do
 	
 	do jdx = 2,J-1
+		!u needs 1 directional (f/w or b/w)
 		idx = 1
-		v(idx,jdx) = (phi_n(idx,jdx+1)-phi_n(idx,jdx))/(y(idx,jdx+1)-y(idx,jdx))
+		u(idx,jdx) = (phi_n(idx+1,jdx)-phi_n(idx,jdx))/(x(idx+1,jdx)-x(idx,jdx))
+		idx = J
+		u(idx,jdx) = (phi_n(idx,jdx)-phi_n(idx-1,jdx))/(x(idx,jdx)-x(idx-1,jdx))
+		
+		!v can be central
+		idx = 1
+		v(idx,jdx) = (phi_n(idx,jdx+1)-phi_n(idx,jdx-1))/(y(idx,jdx+1)-y(idx,jdx-1))
 		idx = I
 		v(idx,jdx) = (phi_n(idx,jdx+1)-phi_n(idx,jdx-1))/(y(idx,jdx+1)-x(idx,jdx-1))
 	end do
@@ -352,6 +366,38 @@ function point_gauss_seidel(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) re
 	close(io)
 end function point_gauss_seidel
 
+function line_jacobi(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) result (phi_n)
+implicit none
+integer, intent(in)					:: nstop,I,J
+	real, dimension(2,I,J), intent(in) 	:: xy
+	real, dimension(I,J), intent(in)	:: phi_IC
+	real, intent(in)					:: c, th, M, gama,P_inf,rho_inf
+	
+	real, allocatable 	:: phi_n(:,:), phi_np1(:,:),x(:,:),y(:,:)
+	integer				:: ndx,idx,jdx,io
+	real				:: A
+	real				:: res, lres
+	
+	allocate(phi_n(I,J))
+	allocate(phi_np1(I,J))
+	allocate(x(I,J))
+	allocate(y(I,J))
+	x = xy(1,:,:)
+	y = xy(2,:,:)
+	
+	A = 1d0-M**2d0
+	r = (c**2d0+th**2d0)/(4d0*th)
+	
+	phi_n(:,:) = phi_IC(:,:)
+	
+	open (newunit=io, file="3-line_jacobi-resid.dat", status="replace", action="write")
+	
+
+	close(io)
+end function line_jacobi
+
+
+
 program elliptic
 	implicit none
 	
@@ -376,6 +422,12 @@ program elliptic
 			character(*), intent(in)	:: grid_path
 			real, allocatable 			:: grid_xy(:,:,:)
 		end function read_grid_file
+		function get_IC(xy,I,J,c,th,M,gama,P_inf,rho_inf) result(phi_IC)
+			integer, intent(in)					:: I,J
+			real, dimension(2,I,J), intent(in) 	:: xy
+			real, intent(in)					:: c, th, M, gama,P_inf,rho_inf
+			real, dimension(I,J)				:: phi_IC
+		end function get_IC
 		function point_jacobi(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) result(phi_n)
 			integer, intent(in)					:: nstop,I,J
 			real, dimension(2,I,J), intent(in) 	:: xy
@@ -390,12 +442,15 @@ program elliptic
 			real, intent(in)					:: c, th, M, gama,P_inf,rho_inf
 			real, allocatable 	:: phi_n(:,:)
 		end function point_gauss_seidel
-		function get_IC(xy,I,J,c,th,M,gama,P_inf,rho_inf) result(phi_IC)
-			integer, intent(in)					:: I,J
+		
+		function line_jacobi(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) result(phi_n)
+			integer, intent(in)					:: nstop,I,J
 			real, dimension(2,I,J), intent(in) 	:: xy
+			real, dimension(I,J), intent(in)	:: phi_IC
 			real, intent(in)					:: c, th, M, gama,P_inf,rho_inf
-			real, dimension(I,J)				:: phi_IC
-		end function get_IC
+			real, allocatable 	:: phi_n(:,:)
+		end function point_gauss_seidel
+		
 	end interface
 	
 	xy = read_grid_file("grid.txt") 

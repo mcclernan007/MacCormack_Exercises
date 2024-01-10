@@ -1,6 +1,7 @@
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 
 #    x = 
@@ -35,28 +36,47 @@ def readXYDataFile(filename):
  
     return x,y,phi,u,v
     
-xydatafile = sys.argv[1];
-x,y, phi,u,v= readXYDataFile(xydatafile)
+    
+datafiles = []    
+if len(sys.argv)>1:
+    datafiles.append(sys.argv[1])
+else:
+    for file in os.listdir():
+        if ("phiUV-" in file) and (".dat" in file):
+            datafiles.append(file)
+            print(file)
 
-#print(x[:,1])
-#plt.figure()
-#plt.plot(x[:,1],v[:,1])
-#plt.scatter(x[:,:],u[:,:])
-#plt.plot(x[:,2],v[:,2],"--")
-#plt.xlim([-0.5,1.5])
-#plt.show()
+for file in datafiles:
 
-#plotGrid(xNodes,yNodes);
-plt.figure()
-#plt.scatter(x,y,20,phi)
+    x,y, phi,u,v= readXYDataFile(file)
 
-#plt.ylim([0,0.1])
-#plt.xlim([-0.5,1.5])
-plt.contourf(x,y,u,100)
-#plt.quiver(x,y,u*10000,v*10000)
+    fig = plt.figure(figsize=[8,5])
+    ax1 = plt.subplot(1,2,1)
+    plt.contourf(x,y,phi,100)
+    plt.title(f"$\phi$ of flow field")
+    plt.colorbar()
 
-plt.colorbar()
+    ax2 = plt.subplot(1,2,2)
+    plt.xlim([-0.5,1.5])
+    plt.ylim([0.0,0.5])
+    #which = np.empty(x.shape,dtype=bool);
+    #which[:,:] = True
+    #which[x<-0.5] = False
+    #which[x>1.5] = False
+    #which[y<0.0] = False
+    #which[y>0.5] = False
+    
+    #print(min(phi[which]),max(phi[which]))
+    pos = plt.contourf(x,y,u,200)
+    fig.colorbar(pos)
+    plt.title(f"$u$ near airfoil")
+    
+    fig.tight_layout()   
+    #plt.show()
+    fig.suptitle(file)
+    fname = file.replace(".dat",".png")
+    plt.savefig(fname)
 
-plt.show()
+
 
 

@@ -1,6 +1,7 @@
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
       
 #    x = 
@@ -23,16 +24,28 @@ def readXYDataFile(filename):
         kdx+=1
  
     return x,Cp
-    
-xydatafile = sys.argv[1];
-x,Cp= readXYDataFile(xydatafile)
 
+datafiles = []    
+if len(sys.argv)>1:
+    datafiles.append(sys.argv[1])
+else:
+    for file in os.listdir():
+        if ("cp-" in file) and (".dat" in file):
+            datafiles.append(file)
+            print(file)
 
-fig = plt.figure()
-myplot = plt.plot(x,Cp)
-plt.scatter(x,Cp)
-#plt.plot(x[:,2],v[:,2],"--")
+legendEntries = []
+legendLines = []
+plt.figure()
+
+for file in datafiles:
+    x,Cp = readXYDataFile(file)
+    plt.plot(x,Cp,"-o")
+    legendEntries.append(file)
+plt.legend(legendEntries)
 plt.xlim([-0.5,1.5])
-#plt.ylim([-0.2,0.3])
 plt.gca().invert_yaxis()
-plt.show()
+plt.ylabel("Cp (inverted axis)")
+plt.xlabel("x")
+#plt.show()
+plt.savefig("Cp.png")

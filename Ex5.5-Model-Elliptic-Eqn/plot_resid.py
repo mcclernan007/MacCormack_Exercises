@@ -21,8 +21,9 @@ def readXYDataFile(filename):
     
 datafiles = []
 for file in os.listdir():
-    if "resid.dat" in file:
+    if ("resid" in file) and (".dat" in file):
         datafiles.append(file)
+        print(file)
 
 legendEntries = []
 plt.figure()
@@ -32,4 +33,5 @@ for file in datafiles:
     plt.plot(x,Cp)
     legendEntries.append(file)
 plt.legend(legendEntries)
-plt.show()
+#plt.show()
+plt.savefig("resid.png")

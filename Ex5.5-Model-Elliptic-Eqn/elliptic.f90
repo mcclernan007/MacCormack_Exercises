@@ -203,7 +203,7 @@ function point_jacobi(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) result (
     
     phi_n(:,:) = phi_IC(:,:)
     
-    open (newunit=io, file="1-point_jacobi-resid.dat", status="replace", action="write")
+    open (newunit=io, file="resid-1-point_jacobi.dat", status="replace", action="write")
     
     do ndx = 1,nstop    
         !Main loops
@@ -295,7 +295,7 @@ function point_gauss_seidel(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) re
     
     phi_n(:,:) = phi_IC(:,:)
     
-    open (newunit=io, file="2-point_gauss_sidel-resid.dat", status="replace", action="write")
+    open (newunit=io, file="resid-2-point_gauss_seidel.dat", status="replace", action="write")
     
     do ndx = 1,nstop    
         !Main loops
@@ -433,7 +433,7 @@ integer, intent(in)                 :: nstop,I,J
     
     phi_n(:,:) = phi_IC(:,:)
     
-    open (newunit=io, file="3-line_jacobi-resid.dat", status="replace", action="write")
+    open (newunit=io, file="resid-3-line_jacobi.dat", status="replace", action="write")
     
     do ndx=1,nstop
     !do ndx=1,1000
@@ -506,14 +506,14 @@ integer, intent(in)                 :: nstop,I,J
 
     close(io)
    
-    open (newunit=io, file="3-resid_map.dat", status="replace", action="write")
-        write(io,*) I*J,I,J
-        do idx=1, I
-            do jdx=1,J
-            write(io, *) xy(1,idx,jdx),"  ", xy(2,idx,jdx),"  ", resmat(idx,jdx)
-        end do
-    end do
-    close(io)
+    !open (newunit=io, file="residmap-3-resid_map.dat", status="replace", action="write")
+    !    write(io,*) I*J,I,J
+    !    do idx=1, I
+    !        do jdx=1,J
+    !        write(io, *) xy(1,idx,jdx),"  ", xy(2,idx,jdx),"  ", resmat(idx,jdx)
+    !    end do
+    !end do
+    !close(io)
     
 end function line_jacobi
 
@@ -537,7 +537,7 @@ program elliptic
     real(8), parameter     :: gama = 1.4d0
     real(8), parameter     :: c = 1.0d0 !may be able to interpret from exteranl grid. For simplicity...
     real(8), parameter     :: th = 0.06d0
-    integer, parameter  :: nstop = 200000
+    integer, parameter  :: nstop = 1000
     
     interface 
         function read_grid_file(grid_path) result(grid_xy)
@@ -591,26 +591,26 @@ program elliptic
     
     phi_IC = get_IC(xy,I,J,c,th,M,gama,P_inf,rho_inf)
     call get_uv(xy, I,J, phi_IC, u,v)   
-    call output_result("0-inital_conditions.dat", xy, phi_IC,u,v,I,J)
-    call output_cp("0-cp_initial_conditions.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
+    call output_result("phiUV-0-inital_conditions.dat", xy, phi_IC,u,v,I,J)
+    call output_cp("cp-0-initial_conditions.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
     
     !Method 1: point jacobi 
     phi_n = point_jacobi(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf)
     call get_uv(xy, I,J, phi_n, u,v)    
-    call output_result("1-point_jacobi.dat", xy, phi_n,u,v,I,J)
-    call output_cp("1-cp_point_jacobi.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
+    call output_result("phiUV-1-point_jacobi.dat", xy, phi_n,u,v,I,J)
+    call output_cp("cp-1-point_jacobi.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
     
     !Method 2: Point Gauss-Seidel
     phi_n = point_gauss_seidel(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf)
     call get_uv(xy, I,J, phi_n, u,v)    
-    call output_result("2-point_gauss_siedel.dat", xy, phi_n,u,v,I,J)
-    call output_cp("2-cp_point_gauss_siedel.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
+    call output_result("phiUV-2-point_gauss_siedel.dat", xy, phi_n,u,v,I,J)
+    call output_cp("cp-2-point_gauss_siedel.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
     
     !Method 3: line jacobi 
     phi_n = line_jacobi(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf)
     call get_uv(xy, I,J, phi_n, u,v)    
-    call output_result("3-line_jacobi.dat", xy, phi_n,u,v,I,J)
-    call output_cp("3-cp_line_jacobi.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
+    call output_result("phiUV-3-line_jacobi.dat", xy, phi_n,u,v,I,J)
+    call output_cp("cp-3_line_jacobi.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
     
     
     

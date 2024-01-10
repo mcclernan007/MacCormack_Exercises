@@ -242,7 +242,7 @@ function point_jacobi(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) result (
                 xb = r*cos(atan2((r-0.5e0*th),(x(idx,1)-c/2e0)))+0.5d0*c!body x (x is chord line)
                 dphidy = M*sqrt(gama*P_inf/rho_inf) * (xb-c/2d0)/(r*sqrt(1d0-((xb**2d0-c/2d0)/(r))**2))
             end if
-            phi_np1(idx,1) = phi_n(idx,2)-dphidy*(x(idx,2)-x(idx,1)) !bottom
+            phi_np1(idx,1) = phi_n(idx,2)-dphidy*(y(idx,2)-y(idx,1)) !bottom
         end do 
         
         !compute and print residual, print, continue
@@ -334,7 +334,7 @@ function point_gauss_seidel(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) re
                 xb = r*cos(atan2((r-0.5e0*th),(x(idx,1)-c/2e0)))+0.5d0*c!body x (x is chord line)
                 dphidy = M*sqrt(gama*P_inf/rho_inf) * (xb-c/2d0)/(r*sqrt(1d0-((xb**2d0-c/2d0)/(r))**2))
             end if
-            phi_n(idx,1)   = phi_n(idx,2)-dphidy*(x(idx,2)-x(idx,1)) !bottom
+            phi_n(idx,1)   = phi_n(idx,2)-dphidy*(y(idx,2)-y(idx,1)) !bottom
         end do 
         
         !compute and print residual, print, continue
@@ -505,17 +505,310 @@ integer, intent(in)                 :: nstop,I,J
     end do
 
     close(io)
-   
-    !open (newunit=io, file="residmap-3-resid_map.dat", status="replace", action="write")
-    !    write(io,*) I*J,I,J
-    !    do idx=1, I
-    !        do jdx=1,J
-    !        write(io, *) xy(1,idx,jdx),"  ", xy(2,idx,jdx),"  ", resmat(idx,jdx)
-    !    end do
-    !end do
-    !close(io)
     
 end function line_jacobi
+
+function line_gauss_siedel(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) result (phi_n)
+implicit none
+integer, intent(in)                 :: nstop,I,J
+    real(8), dimension(2,I,J), intent(in)  :: xy
+    real(8), dimension(I,J), intent(in)    :: phi_IC
+    real(8), intent(in)                    :: c, th, M, gama,P_inf,rho_inf
+    
+    real(8), allocatable   :: phi_n(:,:),x(:,:),y(:,:)
+    real(8), dimension(I)  :: diag_a, diag_b, diag_c, f
+    real(8), dimension(I)  :: phi_out
+    integer                :: ndx,idx,jdx,io
+    real(8)                :: A, dtxj,dtyj,dphidy,xb,r
+    real(8)                :: res, lres
+    real(8),dimension(I,J) :: resmat
+    
+    interface
+        function solve_trilinear(a,b,c,f,J) result(u) 
+            integer, intent(in)             :: J
+            real(8), dimension(J),intent(in)   :: a,b,c,f
+            real(8), dimension(J)              :: u
+        end function solve_trilinear
+    end interface
+    
+    allocate(phi_n(I,J))
+    allocate(x(I,J))
+    allocate(y(I,J))
+    x = xy(1,:,:)
+    y = xy(2,:,:)
+    
+    A = 1d0-M**2d0
+    r = (c**2d0+th**2d0)/(4d0*th)
+    
+    phi_n(:,:) = phi_IC(:,:)
+    
+    open (newunit=io, file="resid-4-line_gauss_siedel.dat", status="replace", action="write")
+    
+    do ndx=1,nstop
+    !do ndx=1,1000
+        do idx = 2,I-1
+            !form line to solve simultaneously
+            do jdx = 2,J-1
+                dtxj = (x(idx+1,jdx)-x(idx-1,jdx))/2d0
+                dtyj = (y(idx,jdx+1)-y(idx,jdx-1))/2d0
+                diag_a(jdx) = A/dtxj*(1d0/(x(idx+1,jdx)-x(idx,jdx)) + 1d0/(x(idx,jdx)-x(idx-1,jdx))) + &
+                            1d0/dtyj*(1d0/(y(idx,jdx+1)-y(idx,jdx)) + 1d0/(y(idx,jdx)-y(idx,jdx-1)))
+                diag_b(jdx) = -1d0/dtyj * (1d0/(y(idx,jdx+1)-y(idx,jdx)))
+                diag_c(jdx) = -1d0/dtyj * (1d0/(y(idx,jdx)-y(idx,jdx-1)))
+                f(jdx) = A/dtxj*((phi_n(idx+1,jdx))/(x(idx+1,jdx)-x(idx,jdx)) + (phi_n(idx-1,jdx))/(x(idx,jdx)-x(idx-1,jdx)))
+            end do
+            !boundary conditions
+            !top:
+            diag_a(J) = 1d0
+            diag_b(J) = 0d0 !unused,but specified to keep idx consistent
+            diag_c(J) = 0d0
+            f(J)      = M*sqrt(gama*P_inf/rho_inf)*x(idx,J) !top
+            !bottom
+            diag_a(1) = 1d0
+            diag_b(1) = -1d0
+            diag_c(1) = 0d0 !unused,but specified to keep idx consistent
+            
+            if (x(idx,1)<0d0 .or. x(idx,1)>c) then  
+                dphidy = 0d0
+            else
+                xb = r*cos(atan2((r-0.5e0*th),(x(idx,1)-c/2e0)))+0.5d0*c!body x (x is chord line)
+                dphidy = M*sqrt(gama*P_inf/rho_inf) * (xb-c/2d0)/(r*sqrt(1d0-((xb**2d0-c/2d0)/(r))**2))
+            end if
+            f(1) = -dphidy * (y(idx,2)-y(idx,1))
+            !solve
+            phi_out = solve_trilinear(diag_a,diag_b,diag_c,f,J)
+            !print*, size(phi_out)
+            phi_n(idx,1:J) = phi_out
+            !phi_np1(idx,1:J) 
+        end do
+        
+        !enforce BC left and right
+        do jdx=1,J
+            phi_n(1,jdx)   = M*sqrt(gama*P_inf/rho_inf)*x(1,jdx) !left
+            phi_n(I,jdx)   = M*sqrt(gama*P_inf/rho_inf)*x(I,jdx) !right
+        end do 
+        
+        resmat(:,:) = 0d0
+        res = 0d0
+        do idx = 2,I-1
+            do jdx = 2,J-1
+                lres = abs(A*( &
+                (((phi_n(idx+1,jdx) - phi_n(idx,jdx))/(x(idx+1,jdx)-x(idx,jdx))) - &
+                 ((phi_n(idx,jdx) - phi_n(idx-1,jdx))/(x(idx,jdx) - x(idx-1,jdx)))) / &
+                 (0.5d0*(x(idx+1,jdx)-x(idx-1,jdx)))) +  &
+                 ((((phi_n(idx,jdx+1) - phi_n(idx,jdx))/(y(idx,jdx+1)-y(idx,jdx))) - &
+                  ((phi_n(idx,jdx) - phi_n(idx,jdx-1))/(y(idx,jdx) - y(idx,jdx-1)))) / &
+                 (0.5d0*(y(idx,jdx+1)-y(idx,jdx-1))))) !oof
+                 resmat(idx,jdx) = lres
+                if (lres>res) then 
+                    
+                    res=lres
+                end if
+            end do
+        end do
+        print *,ndx, res
+        write(io,*) ndx, res
+        
+    end do
+
+    close(io)
+    
+end function line_gauss_siedel
+
+function alternating_direction_implcit(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) result (phi_n)
+implicit none
+integer, intent(in)                 :: nstop,I,J
+    real(8), dimension(2,I,J), intent(in)  :: xy
+    real(8), dimension(I,J), intent(in)    :: phi_IC
+    real(8), intent(in)                    :: c, th, M, gama,P_inf,rho_inf
+    
+    real(8), allocatable   :: phi_n(:,:),x(:,:),y(:,:)
+    real(8), dimension(I)  :: diag_a, diag_b, diag_c, f
+    real(8), dimension(I)  :: phi_out
+    integer                :: ndx,idx,jdx,io
+    real(8)                :: A, dphidy,xb,r
+    real(8)                :: dx1, dx2, dy1, dy2, dxt,dyt
+    real(8)                :: res, lres
+    !real(8),dimension(I,J) :: resmat
+    
+    interface
+        function solve_trilinear(a,b,c,f,J) result(u) 
+            integer, intent(in)             :: J
+            real(8), dimension(J),intent(in)   :: a,b,c,f
+            real(8), dimension(J)              :: u
+        end function solve_trilinear
+    end interface
+    
+    allocate(phi_n(I,J))
+    allocate(x(I,J))
+    allocate(y(I,J))
+    x = xy(1,:,:)
+    y = xy(2,:,:)
+    
+    A = 1d0-M**2d0
+    r = (c**2d0+th**2d0)/(4d0*th)
+    
+    phi_n(:,:) = phi_IC(:,:)
+    
+    open (newunit=io, file="resid-5-adi.dat", status="replace", action="write")
+    
+    !do ndx=1,1000
+    do ndx=1,nstop,2
+        !!!!!!!!!!!!
+        !Vertical Lines
+        !!!!!!!!!!!
+        !Vertical Lines are Gauss-Sidel
+       
+        do idx = 2,I-1
+            !form line to solve simultaneously
+            do jdx = 2,J-1
+                dxt = (x(idx+1,jdx)-x(idx-1,jdx))/2d0
+                dyt = (y(idx,jdx+1)-y(idx,jdx-1))/2d0
+                dx1 = x(idx+1,jdx)-x(idx,jdx)
+                dx2 = x(idx,jdx)-x(idx-1,jdx)
+                dy1 = y(idx,jdx+1)-y(idx,jdx)
+                dy2 = y(idx,jdx)-y(idx,jdx-1)
+                
+                diag_a(jdx) = A/dxt*(1d0/dx1 + 1d0/dx2) + 1d0/dyt*(1d0/dy1 + 1d0/dy2)
+                diag_b(jdx) = -1d0/dyt * (1d0/dy1)
+                diag_c(jdx) = -1d0/dyt * (1d0/dy2)
+                f(jdx) = A/dxt*((phi_n(idx+1,jdx))/dx1 + (phi_n(idx-1,jdx))/dx2)
+            end do
+            !boundary conditions
+            !top:
+            diag_a(J) = 1d0
+            diag_b(J) = 0d0 !unused,but specified to keep idx consistent
+            diag_c(J) = 0d0
+            f(J)      = M*sqrt(gama*P_inf/rho_inf)*x(idx,J) !top
+            !bottom
+            diag_a(1) = 1d0
+            diag_b(1) = -1d0
+            diag_c(1) = 0d0 !unused,but specified to keep idx consistent
+            
+            if (x(idx,1)<0d0 .or. x(idx,1)>c) then  
+                dphidy = 0d0
+            else
+                xb = r*cos(atan2((r-0.5e0*th),(x(idx,1)-c/2e0)))+0.5d0*c!body x (x is chord line)
+                dphidy = M*sqrt(gama*P_inf/rho_inf) * (xb-c/2d0)/(r*sqrt(1d0-((xb**2d0-c/2d0)/(r))**2))
+            end if
+            f(1) = -dphidy * (y(idx,2)-y(idx,1))
+            !solve
+            phi_out = solve_trilinear(diag_a,diag_b,diag_c,f,J)
+            !print*, size(phi_out)
+            phi_n(idx,1:J) = phi_out
+            !phi_np1(idx,1:J) 
+        end do
+        !enforce BC left and right
+        do jdx=1,J
+            phi_n(1,jdx)   = M*sqrt(gama*P_inf/rho_inf)*x(1,jdx) !left
+            phi_n(I,jdx)   = M*sqrt(gama*P_inf/rho_inf)*x(I,jdx) !right
+        end do
+        
+        
+        !write residual
+        res = 0d0
+        do idx = 2,I-1
+            do jdx = 2,J-1
+                lres = abs(A*( &
+                (((phi_n(idx+1,jdx) - phi_n(idx,jdx))/(x(idx+1,jdx)-x(idx,jdx))) - &
+                 ((phi_n(idx,jdx) - phi_n(idx-1,jdx))/(x(idx,jdx) - x(idx-1,jdx)))) / &
+                 (0.5d0*(x(idx+1,jdx)-x(idx-1,jdx)))) +  &
+                 ((((phi_n(idx,jdx+1) - phi_n(idx,jdx))/(y(idx,jdx+1)-y(idx,jdx))) - &
+                  ((phi_n(idx,jdx) - phi_n(idx,jdx-1))/(y(idx,jdx) - y(idx,jdx-1)))) / &
+                 (0.5d0*(y(idx,jdx+1)-y(idx,jdx-1))))) !oof
+                if (lres>res) then 
+                    res=lres
+                end if
+            end do
+        end do
+        print *,ndx, res
+        write(io,*) ndx, res
+        
+        !!!!!!!!!!!!!!!!!!!!!
+        !Horizontal Lines
+        !!!!!!!!!!!!!!!!!!!!!
+        do jdx = 2,J-1
+            do idx=2,I-1
+            !form line to solve simultaneously
+                dxt = (x(idx+1,jdx)-x(idx-1,jdx))/2d0
+                dyt = (y(idx,jdx+1)-y(idx,jdx-1))/2d0
+                dx1 = x(idx+1,jdx)-x(idx,jdx)
+                dx2 = x(idx,jdx)-x(idx-1,jdx)
+                dy1 = y(idx,jdx+1)-y(idx,jdx)
+                dy2 = y(idx,jdx)-y(idx,jdx-1)
+                
+                diag_a(idx) = A/dxt*(1d0/dx1 + 1d0/dx2) + 1d0/dyt*(1d0/dy1 + 1d0/dy2)
+                diag_b(idx) = -A/dxt * (1d0/dx1)
+                diag_c(idx) = -A/dxt * (1d0/dx2)
+                f(idx) = 1d0/dyt*((phi_n(idx,jdx+1))/dy1 + (phi_n(idx,jdx-1))/dy2)
+            end do
+            !boundary condtions
+            !left:
+            diag_a(1) = 1d0
+            diag_b(1) = 0d0 !unused,but specified to keep idx consistent
+            diag_c(1) = 0d0
+            f(1)      = M*sqrt(gama*P_inf/rho_inf)*x(1,1)
+            !right:
+            diag_a(I) = 1d0
+            diag_b(I) = 0d0 
+            diag_c(I) = 0d0 !unused,but specified to keep idx consistent
+            f(I)      = M*sqrt(gama*P_inf/rho_inf)*x(I,1)
+            
+            phi_out = solve_trilinear(diag_a,diag_b,diag_c,f,J)
+            phi_n(1:I,jdx) = phi_out
+            !phi_np1(idx,1:J) 
+        end do
+        !enforce bcs top bottom
+        do idx=1,I
+            phi_n(idx,J) = M*sqrt(gama*P_inf/rho_inf)*x(idx,J) !top 
+        end do 
+        
+        !bottom is either dphi/dy=0 (symmetry) or dphi/dy = V_inf*(dy/dx)_body (slip no pen)
+        do idx=1,I
+            if (x(idx,1)<0d0 .or. x(idx,1)>c) then  
+                dphidy = 0d0
+            else
+                xb = r*cos(atan2((r-0.5e0*th),(x(idx,1)-c/2e0)))+0.5d0*c!body x (x is chord line)
+                dphidy = M*sqrt(gama*P_inf/rho_inf) * (xb-c/2d0)/(r*sqrt(1d0-((xb**2d0-c/2d0)/(r))**2))
+            end if
+            phi_n(idx,1) = phi_n(idx,2)-dphidy*(y(idx,2)-y(idx,1)) !bottom
+        end do 
+            
+        res = 0d0
+        !resmat(:,:) = 0d0
+        do idx = 2,I-1
+            do jdx = 2,J-1
+                lres = abs(A*( &
+                (((phi_n(idx+1,jdx)-phi_n(idx,jdx))/(x(idx+1,jdx)-x(idx,jdx))) - &
+                 ((phi_n(idx,jdx) - phi_n(idx-1,jdx))/(x(idx,jdx) - x(idx-1,jdx)))) / &
+                 (0.5d0*(x(idx+1,jdx)-x(idx-1,jdx)))) +  &
+                 ((((phi_n(idx,jdx+1) - phi_n(idx,jdx))/(y(idx,jdx+1)-y(idx,jdx))) - &
+                  ((phi_n(idx,jdx) - phi_n(idx,jdx-1))/(y(idx,jdx) - y(idx,jdx-1)))) / &
+                 (0.5d0*(y(idx,jdx+1)-y(idx,jdx-1))))) !oof
+                 !resmat(idx,jdx) = lres
+                if (lres>res) then 
+                    res=lres
+                    !print *,idx,jdx
+                end if
+            end do
+        end do
+        
+        print *,ndx+1, res
+        write(io,*) ndx+1, res
+       
+    end do
+    close(io)
+    
+    !open (newunit=io, file="resmap-5-adi.dat", status="replace", action="write")
+    !write(io,*) I*J, I, J
+    !do idx = 1,I
+    !    do jdx = 1,J
+    !        write(io,*) x(idx,jdx), y(idx,jdx),resmat(idx,jdx),resmat(idx,jdx),resmat(idx,jdx)
+    !    end do
+    !end do
+    
+end function alternating_direction_implcit
+
 
 
 
@@ -537,7 +830,8 @@ program elliptic
     real(8), parameter     :: gama = 1.4d0
     real(8), parameter     :: c = 1.0d0 !may be able to interpret from exteranl grid. For simplicity...
     real(8), parameter     :: th = 0.06d0
-    integer, parameter  :: nstop = 1000
+    !integer, parameter  :: nstop = 1000
+    integer                :: nstop 
     
     interface 
         function read_grid_file(grid_path) result(grid_xy)
@@ -577,6 +871,22 @@ program elliptic
             real(8), allocatable   :: phi_n(:,:)
         end function line_jacobi
         
+        function line_gauss_siedel(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) result(phi_n)
+            integer, intent(in)                 :: nstop,I,J
+            real(8), dimension(2,I,J), intent(in)  :: xy
+            real(8), dimension(I,J), intent(in)    :: phi_IC
+            real(8), intent(in)                    :: c, th, M, gama,P_inf,rho_inf
+            real(8), allocatable   :: phi_n(:,:)
+        end function line_gauss_siedel
+        
+        function alternating_direction_implcit(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf) result(phi_n)
+            integer, intent(in)                 :: nstop,I,J
+            real(8), dimension(2,I,J), intent(in)  :: xy
+            real(8), dimension(I,J), intent(in)    :: phi_IC
+            real(8), intent(in)                    :: c, th, M, gama,P_inf,rho_inf
+            real(8), allocatable   :: phi_n(:,:)
+        end function alternating_direction_implcit
+        
     end interface
     
     xy = read_grid_file("grid.txt") 
@@ -595,24 +905,44 @@ program elliptic
     call output_cp("cp-0-initial_conditions.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
     
     !Method 1: point jacobi 
+    nstop = 1000
+    !nstop = 1500000 !for "convergence"
     phi_n = point_jacobi(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf)
     call get_uv(xy, I,J, phi_n, u,v)    
     call output_result("phiUV-1-point_jacobi.dat", xy, phi_n,u,v,I,J)
     call output_cp("cp-1-point_jacobi.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
     
     !Method 2: Point Gauss-Seidel
+    nstop = 1000 
+    !nstop = 700000 !for convergence 
     phi_n = point_gauss_seidel(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf)
     call get_uv(xy, I,J, phi_n, u,v)    
     call output_result("phiUV-2-point_gauss_siedel.dat", xy, phi_n,u,v,I,J)
     call output_cp("cp-2-point_gauss_siedel.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
     
     !Method 3: line jacobi 
+    nstop = 1000
+    !nstop = 270000 !for convergence
     phi_n = line_jacobi(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf)
     call get_uv(xy, I,J, phi_n, u,v)    
     call output_result("phiUV-3-line_jacobi.dat", xy, phi_n,u,v,I,J)
     call output_cp("cp-3_line_jacobi.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
     
+    !Method 4: line gauss sidel
+    nstop = 1000
+    !nstop = 140000!for convergence
+    phi_n = line_gauss_siedel(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf)
+    call get_uv(xy, I,J, phi_n, u,v)    
+    call output_result("phiUV-4-line_gauss_siedel.dat", xy, phi_n,u,v,I,J)
+    call output_cp("cp-4-line_gauss_siedel.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
     
+    !Method 5: alternating direction implcit (ADI)
+    nstop = 1000
+    !nstop = 20000 !for convergence
+    phi_n = alternating_direction_implcit(xy,phi_IC, nstop, I,J, c,th,M,gama,P_inf,rho_inf)
+    call get_uv(xy, I,J, phi_n, u,v)    
+    call output_result("phiUV-5-ADI.dat", xy, phi_n,u,v,I,J)
+    call output_cp("cp-5-ADI.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
     
     !test matrix inversion
     ! (works, just slightly confusing indexing. Not matrix indexes, grid indexes)

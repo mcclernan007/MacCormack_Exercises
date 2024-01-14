@@ -25,7 +25,6 @@ function read_grid_file(grid_path) result(grid_xy)
     
 end function read_grid_file
 
-
 function solve_tridiag(a,b,c,f,J) result(u) !not necc most efficient b/c need to store abc, but for simplicity functionalized
 !Solve trilinear eqn of the form Au = f, A is NxN, u and f are Nx1
 !A is of form [ a_N    cN     0      0      0      ...    0  ]
@@ -142,9 +141,7 @@ function solve_mc(x,y,phi_IC,I,J,nstop,M_inf,resid_path) result(phi)
         end function solve_tridiag
     end interface
     
-    resmap(:,:) = 0d0
     open (newunit=io, file=resid_path, status="replace", action="write")
-    
     
     call get_freestream(M_inf,V_inf,rho_inf,gam,phi_inf,a_inf,P_inf)
     call get_airfoil(c,th,r)
@@ -153,7 +150,6 @@ function solve_mc(x,y,phi_IC,I,J,nstop,M_inf,resid_path) result(phi)
     phi = phi_IC
     
     do ndx = 1,nstop
-        phi_prev = phi
         idx = 2 !special eqn at idx=2, neglect supersonic term (any w/mu(idx-1))
         do jdx = 2,J-1 !assemble line
             dx1 = x(idx+1,jdx) - x(idx,jdx)
@@ -270,11 +266,10 @@ function solve_mc(x,y,phi_IC,I,J,nstop,M_inf,resid_path) result(phi)
                        ((phi(idx+1,jdx)-phi(idx,jdx))/dx1 - (phi(idx,jdx)-phi(idx-1,jdx))/dx2)
             Rij = Rij + (2d0/(dy1+dy2)) * &
                        ((phi(idx,jdx+1)-phi(idx,jdx))/dy1 - (phi(idx,jdx)-phi(idx,jdx-1))/dy2)
-            resmap(idx,jdx) = Rij
+            
             if (abs(Rij)> res) then 
                 res = abs(Rij)
-                idx_resmax = idx
-                jdx_resmax = jdx
+                
             end if
         end do
         do idx = 3,I-1 !rest of idx, w/full formulation
@@ -306,7 +301,7 @@ function solve_mc(x,y,phi_IC,I,J,nstop,M_inf,resid_path) result(phi)
                    ((phi(idx,jdx)-phi(idx-1,jdx))/dx2 - (phi(idx-1,jdx)-phi(idx-2,jdx))/dx3)
                 Rij = Rij + (2d0/(dy1+dy2)) * &
                    ((phi(idx,jdx+1)-phi(idx,jdx))/dy1 - (phi(idx,jdx)-phi(idx,jdx-1))/dy2)
-                resmap(idx,jdx) = Rij
+
                 if (abs(Rij)> res) then 
                     res = abs(Rij)
                 end if
@@ -317,31 +312,85 @@ function solve_mc(x,y,phi_IC,I,J,nstop,M_inf,resid_path) result(phi)
     end do
     close(io)
     
-    open (newunit=io_deb3, file="res_map.dat", status="replace", action="write")
-    write(io_deb3,*) I*J,I,J
-    do idx=1, I
-        do jdx=1,J
-            write(io_deb3, *) x(idx,jdx),"  ", y(idx,jdx),"  ", resmap(idx,jdx)
-        end do
-    end do
-    close(io_deb3)
     
     
 end function solve_mc 
 
-!subroutine get_uv(x,y, I,J, phi, u,v)   
-!    integer, intent(in)                     :: I,J
-!    real(8), dimension(I,J), intent(in)     :: x,y,phi
-!    real(8), dimension(I,J), intent(out)    :: u,v
-!    
-!    integer :: idx,jdx
-!    !TODO probably cant do centered differencing everywhere. find A, mu again or something
-!    do idx = 2,I-1
-!        do jdx = 1,J
-!            u(idx,jdx) = phi(idx+1,idx-1)
-!        end do
-!    end do
-!end subroutine get_uv
+subroutine get_uv(x,y, I,J, phi, u,v,M_inf,M_loc)   
+    integer, intent(in)                     :: I,J
+    real(8), intent(in)                     :: M_inf
+    real(8), dimension(I,J), intent(in)     :: x,y,phi
+    real(8), dimension(I,J), intent(out)    :: u,v,M_loc
+    
+    real(8) :: V_inf,rho_inf,gam,phi_inf,a_inf,P_inf
+    integer :: idx,jdx
+    
+    call get_freestream(M_inf,V_inf,rho_inf,gam,phi_inf,a_inf,P_inf)
+    
+    !sufficient to do cetnral diff for vel?
+    do idx = 2,I-1
+        do jdx = 1,J
+            u(idx,jdx) = V_inf+((phi(idx+1,jdx)-phi(idx-1,jdx))/(x(idx+1,jdx)-x(idx-1,jdx)))
+        end do
+    end do
+    do jdx = 1,J !edges (1 way diff)
+        idx = 1
+        u(idx,jdx) = V_inf+((phi(idx+1,jdx)-phi(idx,jdx))/(x(idx+1,jdx)-x(idx,jdx)))
+        idx = I
+        u(idx,jdx) = V_inf+((phi(idx,jdx)-phi(idx-1,jdx))/(x(idx,jdx)-x(idx-1,jdx)))
+    end do
+    
+    do idx = 1,I
+        do jdx = 2,J-1
+            v(idx,jdx) = (phi(idx,jdx+1)-phi(idx,jdx-1))/(y(idx,jdx+1)-y(idx,jdx-1))
+        end do
+    end do
+    do idx = 1,I !edges (1 way diff)
+        jdx = 1
+        v(idx,jdx) = (phi(idx,jdx+1)-phi(idx,jdx))/(y(idx,jdx+1)-y(idx,jdx))
+        jdx = J
+        v(idx,jdx) = (phi(idx,jdx)-phi(idx,jdx-1))/(y(idx,jdx)-y(idx,jdx-1))
+    end do
+    
+    
+    do idx = 1,I
+        do jdx = 1,J
+            M_loc(idx,jdx) = sqrt((u(idx,jdx)**2+v(idx,jdx)**2))/a_inf
+        end do
+    end do
+    
+end subroutine get_uv
+
+subroutine write_Cp(path,x,y,u,v,I,J,M_inf,Cp)
+    implicit none
+    character(*), intent(in)            :: path
+    integer, intent(in)                     :: I,J
+    real(8), intent(in)                     :: M_inf
+    real(8), dimension(I,J), intent(in)     :: x,y,u,v
+    real(8), dimension(I), intent(out)      :: Cp
+    
+    integer :: idx,jdx,io
+    real(8) :: V_inf,rho_inf,gam,phi_inf,a_inf,P_inf
+    real(8) :: P
+    
+    call get_freestream(M_inf,V_inf,rho_inf,gam,phi_inf,a_inf,P_inf)
+    
+    jdx = 1
+    do idx = 1,I
+        P = P_inf*((1d0-(gam-1d0)/(2d0)*(M_inf**2d0)*((u(idx,jdx)**2+v(idx,jdx)**2)/(M_inf*sqrt(gam*P_inf/rho_inf))-1d0)) &
+        **((gam/(gam-1d0))))
+        Cp(idx) = (P-P_inf)/(0.5d0*rho_inf* (M_inf*sqrt(gam*P_inf/rho_inf))**2d0)
+    end do
+    
+    open (newunit=io, file=path, status="replace", action="write")
+    !write(io,*) I
+    jdx = 1
+    do idx=1, I
+        write(io, *) x(idx,jdx),"  ", Cp(idx)
+    end do
+    close(io)
+    
+end subroutine  write_Cp
 
 subroutine output_result(path, x,y, phi,I,J)
     implicit none
@@ -367,7 +416,8 @@ program murman_cole
     implicit none
     
     real(8), allocatable   :: xy(:,:,:)
-    real(8), allocatable   :: x(:,:),y(:,:), phi(:,:), phi_IC(:,:),u(:,:),v(:,:)
+    real(8), allocatable   :: x(:,:),y(:,:), phi(:,:), phi_IC(:,:),u(:,:),v(:,:),M_loc(:,:)
+    real(8), allocatable   :: Cp(:)
     real(8)                :: V_inf,rho_inf,gam,phi_inf,a_inf,P_inf
     character(:), allocatable :: grid_path
     real(8)                   :: M_inf
@@ -392,46 +442,133 @@ program murman_cole
             character(*), intent(in)            :: resid_path
             real(8), dimension(I,J)             :: phi
         end function solve_mc
-        
     end interface
     
     !M = 0.908_kdub
     
-    grid_path = "./grid.txt"
     
-    xy = read_grid_file("grid.txt") 
+    xy = read_grid_file("grid1.txt") 
     I = size(xy,2)
     J = size(xy,3)
     
     allocate(x(I,J))
     allocate(y(I,J))
+    allocate(u(I,J))
+    allocate(v(I,J))
+    allocate(M_loc(I,J))
+    allocate(Cp(I))
     allocate(phi(I,J))
     allocate(phi_IC(I,J))
     
     x = xy(1,:,:)
     y = xy(2,:,:)
     
-    !!Case 1 #fully subsonic
+    !Case 1 subsonic, fig 6.11 resid, no post
     M_inf = 0.735d0
-    nstop = 400 
-    !nstop = 32000 !for convergence
-    phi_IC = get_IC(x,y,M_inf,I,J)
-    call output_result("phiIC-C1-M0p735.dat", x,y, phi_IC,I,J)
-    
-    phi = solve_mc(x,y,phi_IC,I,J,nstop,M_inf,"resid-C1-M0p735.dat")
-    call output_result("phi-C1-M0p735.dat", x,y, phi,I,J)
-    
-    !Case 2 #actually transonic
-    M_inf = 0.908d0
     nstop = 400
-    !nstop = 27000 !for convergence
     phi_IC = get_IC(x,y,M_inf,I,J)
-    call output_result("phiIC-C2-M0p908.dat", x,y, phi_IC,I,J)
+    phi = solve_mc(x,y,phi_IC,I,J,nstop,M_inf,"resid-C1-M0p735.dat")
     
+    !Case 2 transonic, fig 6.11 resid, no post
+    M_inf = 0.908d0
+    nstop = 400 
+    phi_IC = get_IC(x,y,M_inf,I,J)
     phi = solve_mc(x,y,phi_IC,I,J,nstop,M_inf,"resid-C2-M0p908.dat")
-    call output_result("phi-C2-M0p908.dat", x,y, phi,I,J)
-    !call get_uv(x,y, I,J, phi, u,v)   
-    !call output_cp("cp-0-initial_conditions.dat",xy,u,v,I,J,M,gama,P_inf,rho_inf)
+    
+    !Case 3 subsonic, fig 6.7 contour/SL, fig 6.8 Cp
+    M_inf = 0.735d0
+    nstop = 32000
+    phi_IC = get_IC(x,y,M_inf,I,J)
+    phi = solve_mc(x,y,phi_IC,I,J,nstop,M_inf,"resid-C3-M0p735.dat")
+    call get_uv(x,y, I,J, phi, u, v,M_inf,M_loc)   
+    call output_result("resultC3-u-M0p735.dat",x,y,u,I,J)
+    call output_result("resultC3-v-M0p735.dat",x,y,v,I,J)
+    call output_result("resultC3-M-M0p735.dat",x,y,M_loc,I,J)
+    call write_Cp("resultC3-Cp-M0p735.dat",x,y,u,v,I,J,M_inf,Cp)
+    
+    !Case 4 transonic, fig 6.9 contour/SL coarse, 6.10 Cp vs x (coarse
+    M_inf = 0.908d0
+    nstop = 27000 !for convergence
+    phi_IC = get_IC(x,y,M_inf,I,J)
+    phi = solve_mc(x,y,phi_IC,I,J,nstop,M_inf,"resid-C4-M0p908.dat")
+    call output_result("resultC4-phi-M0p908.dat", x,y, phi,I,J)
+    call get_uv(x,y, I,J, phi, u, v,M_inf,M_loc)   
+    call output_result("resultC4-u-M0p908.dat",x,y,u,I,J)
+    call output_result("resultC4-v-M0p908.dat",x,y,v,I,J)
+    call output_result("resultC4-M-M0p908.dat",x,y,M_loc,I,J)
+    call write_Cp("resultC4-Cp-M0p908.dat",x,y,u,v,I,J,M_inf,Cp)
+
+    !Case 5 transonic, fig 6.12 contour SL fine, 6.13 Cp vs x (fine)
+    deallocate(xy)
+    deallocate(x)
+    deallocate(y)
+    deallocate(u)
+    deallocate(v)
+    deallocate(M_loc)
+    deallocate(Cp)
+    deallocate(phi)
+    deallocate(phi_IC)
+    
+    
+    xy = read_grid_file("grid2.txt") 
+    I = size(xy,2)
+    J = size(xy,3)
+    
+    allocate(x(I,J))
+    allocate(y(I,J))
+    allocate(u(I,J))
+    allocate(v(I,J))
+    allocate(M_loc(I,J))
+    allocate(Cp(I))
+    allocate(phi(I,J))
+    allocate(phi_IC(I,J))
+    
+    x = xy(1,:,:)
+    y = xy(2,:,:)
+    
+    !Case B #actually transonic
+    M_inf = 0.908d0
+    nstop = 220000 !for convergence
+    phi_IC = get_IC(x,y,M_inf,I,J)
+    call output_result("phiIC-C5-M0p908.dat", x,y, phi_IC,I,J)
+    
+    phi = solve_mc(x,y,phi_IC,I,J,nstop,M_inf,"resid-C5-M0p908.dat")
+    call output_result("resultC5-phi-M0p908.dat", x,y, phi,I,J)
+    call get_uv(x,y, I,J, phi, u, v,M_inf,M_loc)   
+    call output_result("resultC5-u-M0p908.dat",x,y,u,I,J)
+    call output_result("resultC5-v-M0p908.dat",x,y,v,I,J)
+    call output_result("resultC5-M-M0p908.dat",x,y,M_loc,I,J)
+    call write_Cp("resultC5-Cp-M0p908.dat",x,y,u,v,I,J,M_inf,Cp)
+    
+    
+    !!Case A #fully subsonic
+    !M_inf = 0.735d0
+    !nstop = 32000 !for convergence
+    !phi_IC = get_IC(x,y,M_inf,I,J)
+    !call output_result("phiIC-C1-M0p735.dat", x,y, phi_IC,I,J)
+    !
+    !phi = solve_mc(x,y,phi_IC,I,J,nstop,M_inf,"resid-C1-M0p735.dat")
+    !call output_result("resultC1-phi-M0p735.dat", x,y, phi,I,J)
+    !call get_uv(x,y, I,J, phi, u, v,M_inf,M_loc)   
+    !call output_result("resultC1-u-M0p735.dat",x,y,u,I,J)
+    !call output_result("resultC1-v-M0p735.dat",x,y,v,I,J)
+    !call output_result("resultC1-M-M0p735.dat",x,y,M_loc,I,J)
+    !call write_Cp("resultC1-Cp-M0p735.dat",x,y,u,v,I,J,M_inf,Cp)
+    !
+    !!Case B #actually transonic
+    !M_inf = 0.908d0
+    !nstop = 27000 !for convergence
+    !phi_IC = get_IC(x,y,M_inf,I,J)
+    !call output_result("phiIC-C2-M0p908.dat", x,y, phi_IC,I,J)
+    !
+    !phi = solve_mc(x,y,phi_IC,I,J,nstop,M_inf,"resid-C2-M0p908.dat")
+    !call output_result("resultC2-phi-M0p908.dat", x,y, phi,I,J)
+    !call get_uv(x,y, I,J, phi, u, v,M_inf,M_loc)   
+    !call output_result("resultC2-u-M0p908.dat",x,y,u,I,J)
+    !call output_result("resultC2-v-M0p908.dat",x,y,v,I,J)
+    !call output_result("resultC2-M-M0p908.dat",x,y,M_loc,I,J)
+    !call write_Cp("resultC2-Cp-M0p908.dat",x,y,u,v,I,J,M_inf,Cp)
+
     
     
     

@@ -33,5 +33,5 @@ for file in datafiles:
     plt.plot(x,Cp)
     legendEntries.append(file)
 plt.legend(legendEntries)
-#plt.show()
-plt.savefig("resid.png")
+plt.show()
+#plt.savefig("resid.png")

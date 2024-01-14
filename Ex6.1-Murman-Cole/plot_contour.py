@@ -68,10 +68,10 @@ for file in datafiles:
     plt.title(f"$u$ near airfoil")
     
     fig.tight_layout()   
-    #plt.show()
+    plt.show()
     fig.suptitle(file)
     fname = file.replace(".dat",".png")
-    plt.savefig(fname)
+    #plt.savefig(fname)
 
 
 

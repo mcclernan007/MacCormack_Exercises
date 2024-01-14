@@ -75,9 +75,10 @@ program gen_grid
       character(:), allocatable :: gridOutPath
 
       !parameters
-      integer(kint), parameter :: grid_x_Npts = 51_kint !# grid points
+      !integer(kint), parameter :: grid_x_Npts = 51_kint !# grid points
+      integer(kint), parameter :: grid_x_Npts = 101_kint !# grid points
 	  integer(kint), parameter :: grid_y_Npts = 51_kint !# grid points
-	  integer(kint), parameter :: grid_airfoilNpts = 21_kint !# grid const dx points on af
+	  integer(kint), parameter :: grid_airfoilNpts = 61_kint !# grid const dx points on af
 	  integer(kint), parameter :: grid_xStrechNpts = (grid_x_Npts-grid_airfoilNpts)/2 !#grid pts to stretch 
 	  
       real(kflt), parameter :: c = 1.0_kflt !chord
@@ -101,7 +102,8 @@ program gen_grid
       integer(kint) :: kdx
       
       !Assign vars explicitly
-      gridOutPath = 'grid.txt'
+      !gridOutPath = 'grid1.txt'
+      gridOutPath = 'grid2.txt'
       D = 50*c
 	  dx_min = c/real(grid_airfoilNpts,kflt)
       dy_min = th/10 

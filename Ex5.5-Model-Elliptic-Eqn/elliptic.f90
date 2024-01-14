@@ -408,7 +408,7 @@ integer, intent(in)                 :: nstop,I,J
     real(8), allocatable   :: phi_n(:,:), phi_np1(:,:),x(:,:),y(:,:)
     real(8), dimension(I)  :: diag_a, diag_b, diag_c, f
     real(8), dimension(I)  :: phi_out
-    integer             :: ndx,idx,jdx,io
+    integer                :: ndx,idx,jdx,io
     real(8)                :: A, dtxj,dtyj,dphidy,xb,r
     real(8)                :: res, lres
     real(8),dimension(I,J) :: resmat
@@ -810,6 +810,11 @@ integer, intent(in)                 :: nstop,I,J
 end function alternating_direction_implcit
 
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! TODO
+! Abandoned until done with grad school. Problem is with BC. dydx|body is wrong.
+! Fixed in murman cole.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 program elliptic
@@ -897,6 +902,7 @@ program elliptic
     allocate(phi_n(I,J))
     allocate(u(I,J))
     allocate(v(I,J))
+    
     
     
     phi_IC = get_IC(xy,I,J,c,th,M,gama,P_inf,rho_inf)

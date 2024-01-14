@@ -132,18 +132,20 @@ plt.savefig("Fig-6.10-transonicCp.png")
 ####################################################################
 plt.figure()
 
-plt.title(f"Figure 6.9 Mach Contours and streamlines of transonic flow ($M_\infty=0.0.908$) \n With Refined grid, 101x51")
-x, y, M = readXYDataFile("resultC5-v-M0p908.dat")
+plt.title(f"Figure 6.12 Mach Contours and streamlines of transonic flow ($M_\infty=0.908$) \n With Refined grid, 101x51")
+x, y, M = readXYDataFile("resultC5-M-M0p908.dat")
+x, y, v = readXYDataFile("resultC5-v-M0p908.dat")
 x, y, u = readXYDataFile("resultC5-u-M0p908.dat")
-x, y, v = readXYDataFile("resultC5-M-M0p908.dat")
 
-cvar = plt.contour(x,y,M,[1,1.1,1.2,1.3])
-#plt.gca().clabel(cvar,fontsize=10) #<-not working wtf
-#plt.streamplot(np.transpose(x),np.transpose(y),np.transpose(u),np.transpose(v)) requires equal spacing wtf
-#plt.quiver(x,y,u,v,scale=0.02)
 
 plt.xlim([-0.5,1.5])
 plt.ylim([0,1.7])
+
+cvar = plt.contour(x,y,M,[1,1.1,1.2,1.3])
+#plt.colorbar()
+#plt.gca().clabel(cvar,fontsize=10) #<-not working wtf
+#plt.streamplot(np.transpose(x),np.transpose(y),np.transpose(u),np.transpose(v)) requires equal spacing wtf
+#plt.quiver(x,y,u,v,scale=0.02)
 
 plt.savefig("Fig-6.12-transonic-streamlines-fine.png")
 
